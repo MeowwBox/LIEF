@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2017 - 2024 R. Thomas
+ * Copyright 2017 - 2024 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 #include <algorithm>
-#include <list>
 #include <fstream>
 #include <iterator>
 #include <utility>
 
 #include "logging.hpp"
 
-#include "LIEF/exception.hpp"
+
 #include "LIEF/BinaryStream/BinaryStream.hpp"
 
 #include "LIEF/MachO/Builder.hpp"

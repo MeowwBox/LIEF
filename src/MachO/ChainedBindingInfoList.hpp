@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2017 - 2024 R. Thomas
+ * Copyright 2017 - 2024 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,9 @@
  */
 #ifndef LIEF_MACHO_CHAINED_BINDING_INFO_LIST_H
 #define LIEF_MACHO_CHAINED_BINDING_INFO_LIST_H
-#include <iostream>
 
-#include "LIEF/visibility.h"
-#include "LIEF/types.hpp"
+#include <vector>
 #include "LIEF/MachO/ChainedBindingInfo.hpp"
-
-#include "LIEF/MachO/enums.hpp"
 
 namespace LIEF {
 namespace MachO {

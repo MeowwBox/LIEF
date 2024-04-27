@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2017 - 2024 R. Thomas
+ * Copyright 2017 - 2024 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 #include <algorithm>
-#include <numeric>
 #include <sstream>
 
 #include "logging.hpp"
@@ -23,12 +22,11 @@
 #include "Object.tcc"
 #include "Binary.tcc"
 
+#include "LIEF/Visitor.hpp"
 #include "LIEF/utils.hpp"
-#include "LIEF/BinaryStream/VectorStream.hpp"
 #include "LIEF/BinaryStream/SpanStream.hpp"
 
 #include "LIEF/MachO/Binary.hpp"
-#include "LIEF/MachO/BindingInfo.hpp"
 #include "LIEF/MachO/Builder.hpp"
 #include "LIEF/MachO/ChainedBindingInfo.hpp"
 #include "LIEF/MachO/CodeSignature.hpp"
@@ -43,7 +41,6 @@
 #include "LIEF/MachO/DylinkerCommand.hpp"
 #include "LIEF/MachO/DynamicSymbolCommand.hpp"
 #include "LIEF/MachO/EncryptionInfo.hpp"
-#include "LIEF/MachO/EnumToString.hpp"
 #include "LIEF/MachO/ExportInfo.hpp"
 #include "LIEF/MachO/FunctionStarts.hpp"
 #include "LIEF/MachO/LinkEdit.hpp"
@@ -60,13 +57,13 @@
 #include "LIEF/MachO/Symbol.hpp"
 #include "LIEF/MachO/SymbolCommand.hpp"
 #include "LIEF/MachO/ThreadCommand.hpp"
+#include "LIEF/MachO/BuildVersion.hpp"
 #include "LIEF/MachO/TwoLevelHints.hpp"
 #include "LIEF/MachO/UUIDCommand.hpp"
 #include "LIEF/MachO/VersionMin.hpp"
-#include "LIEF/MachO/hash.hpp"
 #include "MachO/Structures.hpp"
 
-#include "LIEF/exception.hpp"
+#include "internal_utils.hpp"
 
 namespace LIEF {
 namespace MachO {
@@ -75,9 +72,9 @@ bool Binary::KeyCmp::operator() (const Relocation* lhs, const Relocation* rhs) c
   return *lhs < *rhs;
 }
 
-Binary::Binary() {
-  format_ = LIEF::EXE_FORMATS::FORMAT_MACHO;
-}
+Binary::Binary() :
+  LIEF::Binary(LIEF::Binary::FORMATS::MACHO)
+{}
 
 LIEF::Binary::sections_t Binary::get_abstract_sections() {
   LIEF::Binary::sections_t result;
@@ -168,7 +165,9 @@ void Binary::patch_address(uint64_t address, uint64_t patch_value, size_t size, 
 
 }
 
-std::vector<uint8_t> Binary::get_content_from_virtual_address(uint64_t virtual_address, uint64_t size, LIEF::Binary::VA_TYPES) const {
+span<const uint8_t> Binary::get_content_from_virtual_address(
+    uint64_t virtual_address, uint64_t size, LIEF::Binary::VA_TYPES) const
+{
   const SegmentCommand* segment = segment_from_virtual_address(virtual_address);
 
   if (segment == nullptr) {
@@ -184,7 +183,7 @@ std::vector<uint8_t> Binary::get_content_from_virtual_address(uint64_t virtual_a
     checked_size = checked_size - (offset + checked_size - content.size());
   }
 
-  return {content.data() + offset, content.data() + offset + checked_size};
+  return {content.data() + offset, static_cast<size_t>(checked_size)};
 }
 
 
@@ -210,7 +209,6 @@ bool Binary::is_pie() const {
   return header().has(HEADER_FLAGS::MH_PIE);
 }
 
-
 bool Binary::has_nx() const {
   if (!header().has(HEADER_FLAGS::MH_NO_HEAP_EXECUTION)) {
     LIEF_INFO("Heap could be executable");
@@ -218,6 +216,13 @@ bool Binary::has_nx() const {
   return !header().has(HEADER_FLAGS::MH_ALLOW_STACK_EXECUTION);
 }
 
+bool Binary::has_nx_stack() const {
+  return !header().has(HEADER_FLAGS::MH_ALLOW_STACK_EXECUTION);
+}
+
+bool Binary::has_nx_heap() const {
+  return header().has(HEADER_FLAGS::MH_NO_HEAP_EXECUTION);
+}
 
 bool Binary::has_entrypoint() const {
   return has_main_command() || has_thread_command();
@@ -1145,7 +1150,7 @@ bool Binary::remove(const LoadCommand& command) {
       });
 
   if (it == std::end(commands_)) {
-    LIEF_ERR("Unable to find command: {}", command);
+    LIEF_ERR("Unable to find command: {}", to_string(command));
     return false;
   }
 
@@ -1246,7 +1251,7 @@ bool Binary::extend(const LoadCommand& command, uint64_t size) {
       });
 
   if (it == std::end(commands_)) {
-    LIEF_ERR("Unable to find command: {}", command);
+    LIEF_ERR("Unable to find command: {}", to_string(command));
     return false;
   }
 
@@ -2277,6 +2282,18 @@ RPathCommand* Binary::rpath() {
 
 const RPathCommand* Binary::rpath() const {
   return command<RPathCommand>();
+}
+
+Binary::it_rpaths Binary::rpaths() {
+  return {commands_, [] (const std::unique_ptr<LoadCommand>& cmd) {
+    return RPathCommand::classof(cmd.get());
+  }};
+}
+
+Binary::it_const_rpaths Binary::rpaths() const {
+  return {commands_, [] (const std::unique_ptr<LoadCommand>& cmd) {
+    return RPathCommand::classof(cmd.get());
+  }};
 }
 
 // SymbolCommand command

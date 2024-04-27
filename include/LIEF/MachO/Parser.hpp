@@ -1,5 +1,5 @@
-/* Copyright 2017 - 2023 R. Thomas
- * Copyright 2017 - 2023 Quarkslab
+/* Copyright 2017 - 2024 R. Thomas
+ * Copyright 2017 - 2024 Quarkslab
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LIEF_MACHO_PARSER_H_
-#define LIEF_MACHO_PARSER_H_
+#ifndef LIEF_MACHO_PARSER_H
+#define LIEF_MACHO_PARSER_H
 #include <string>
 #include <vector>
 #include <memory>
@@ -26,8 +26,6 @@
 #include "LIEF/Abstract/Parser.hpp"
 
 #include "LIEF/MachO/ParserConfig.hpp"
-
-struct Profiler;
 
 namespace LIEF {
 class BinaryStream;
@@ -44,11 +42,10 @@ class FatBinary;
 //! a FatBinary object.
 class LIEF_API Parser : public LIEF::Parser {
   public:
-  friend struct ::Profiler;
   Parser& operator=(const Parser& copy) = delete;
   Parser(const Parser& copy)            = delete;
 
-  ~Parser();
+  ~Parser() override;
 
   //! Parse a Mach-O file from the path provided by the ``filename``
   //! parameter
@@ -68,10 +65,8 @@ class LIEF_API Parser : public LIEF::Parser {
   //! of the parser
   //!
   //! @param[in] data       Mach-O file as a vector of bytes
-  //! @param[in] name       A name for the Mach-O file
   //! @param[in] conf       Parser configuration (Defaut: ParserConfig::deep)
   static std::unique_ptr<FatBinary> parse(const std::vector<uint8_t>& data,
-                                          const std::string& name = "",
                                           const ParserConfig& conf = ParserConfig::deep());
 
 
